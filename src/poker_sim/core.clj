@@ -1,6 +1,7 @@
 (ns poker-sim.core
   (:gen-class)
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string])
+  (:require [clojure.set :as set]))
 
 (def deck
   #{[:clover :ace] [:clover :2] [:clover :3] [:clover :4] [:clover :5] [:clover :6] [:clover :7] [:clover :8] [:clover :9] [:clover :10] [:clover :jack] [:clover :queen] [:clover :king]
@@ -14,12 +15,20 @@
 (defn all-cards? [coll]
   (every? card? coll))
 
+(defn remove-cards [deck cards]
+  (set/difference deck cards))
+
+;;
+
 (defn flatten-once [coll]
   (apply concat coll))
 
 (defn zip [a b]
   (vec (map vector a b)))
 
+; remove known cards
+; shuffle cards
+; take the required amount
 (defn complete-game
   [num-players known-hands community-cards]
     (let [not-required-2 (vec (filter #(>= (count %) 1) known-hands))
@@ -30,10 +39,11 @@
           
           num-required-community (- 5 (count community-cards))
           
-          deck-shuffled (vec (shuffle deck))
+          cards-to-remove (set (concat (flatten-once known-hands) 
+                                       community-cards))
+          deck-shuffled (vec (shuffle (remove-cards deck cards-to-remove)))
           deck-after-community (vec (drop num-required-community deck-shuffled))
           deck-after-2-known (vec (drop num-required-2-known deck-after-community))]
-      
       (let [community (vec (concat
                             community-cards
                             (take num-required-community deck-shuffled)))
@@ -53,12 +63,6 @@
         
         {:community community
          :hands hands})))
-
-; (complete-game 3 [[card1] [card1 card2]] [card1 card2])
-
-; remove known cards
-; shuffle cards
-; take the required amount
 
 (defn simulate
   [num-simulations num-players known-hands community-cards]
