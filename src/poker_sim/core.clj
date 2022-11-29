@@ -1,7 +1,19 @@
 (ns poker-sim.core
-  (:gen-class))
+  (:gen-class)
+  (:require [clojure.string :as string]))
 
-(defn -main
-  "I don't do a whole lot ... yet."
+(def deck
+  [[:clover :ace] [:clover :2] [:clover :3] [:clover :4] [:clover :5] [:clover :6] [:clover :7] [:clover :8] [:clover :9] [:clover :10] [:clover :jack] [:clover :queen] [:clover :king]
+   [:spade :ace] [:spade :2] [:spade :3] [:spade :4] [:spade :5] [:spade :6] [:spade :7] [:spade :8] [:spade :9] [:spade :10] [:spade :jack] [:spade :queen] [:spade :king]
+   [:diamond :ace] [:diamond :2] [:diamond :3] [:diamond :4] [:diamond :5] [:diamond :6] [:diamond :7] [:diamond :8] [:diamond :9] [:diamond :10] [:diamond :jack] [:diamond :queen] [:diamond :king]
+   [:heart :ace] [:heart :2] [:heart :3] [:heart :4] [:heart :5] [:heart :6] [:heart :7] [:heart :8] [:heart :9] [:heart :10] [:heart :jack] [:heart :queen] [:heart :king]])
+
+(defn simulate
+  [n known-hands community-cards]
+  [community-cards known-hands n])
+
+(defn -main 
   [& args]
-  (println "Hello, World!"))
+  (try (let [params (load-string (str "[" (string/join args) "]"))]
+         (println (apply simulate params)))
+       (catch Exception e "Usage: ./core.clj <n> <known hands> <community cards>")))

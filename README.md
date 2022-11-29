@@ -1,6 +1,6 @@
 # poker-sim
 
-FIXME: description
+poker simulator
 
 ## Installation
 
