@@ -14,12 +14,47 @@
 (defn all-cards? [coll]
   (every? card? coll))
 
-(defn complete-game
-  [known-hands community-cards]
-  (letfn [()]
-    (let [])))
+(defn flatten-once [coll]
+  (apply concat coll))
 
-; (complete-game [[] []] [[:clover :ace] [:heart 3]])
+(defn zip [a b]
+  (vec (map vector a b)))
+
+(defn complete-game
+  [num-players known-hands community-cards]
+    (let [not-required-2 (vec (filter #(>= (count %) 1) known-hands))
+          num-required-2-known (- num-players (count not-required-2)) ; number of player hands that that need 2 cards
+          
+          required-1 (vec (filter #(= 1 (count %)) known-hands))
+          required-0 (vec (filter #(= 2 (count %)) known-hands))
+          
+          num-required-community (- 5 (count community-cards))
+          
+          deck-shuffled (vec (shuffle deck))
+          deck-after-community (vec (drop num-required-community deck-shuffled))
+          deck-after-2-known (vec (drop num-required-2-known deck-after-community))]
+      
+      (let [community (vec (concat
+                            community-cards
+                            (take num-required-community deck-shuffled)))
+            
+            ; the rest of the required hands for players with 0 cards
+            rest-required-2 (vec (map vec (take num-required-2-known (partition 2 deck-after-community))))
+            
+            ; the random cards to be zipped
+            rest-random-cards-1 (vec (flatten-once (partition 1 deck-after-2-known)))
+            ; the rest of the required hands for players with 1 cards
+            rest-required-1 (zip (flatten-once required-1) rest-random-cards-1)
+            
+            hands (vec (concat
+                        rest-required-1
+                        rest-required-2
+                        required-0))]
+        
+        {:community community
+         :hands hands})))
+
+; (complete-game 3 [[card1] [card1 card2]] [card1 card2])
 
 ; remove known cards
 ; shuffle cards
@@ -47,7 +82,7 @@
       (assert (every? all-cards? known-hands))
       
       (assert (apply distinct? (concat
-                                (apply concat known-hands)
+                                (flatten-once known-hands)
                                 community-cards)))
       
       (assert (all-cards? community-cards))
