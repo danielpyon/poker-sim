@@ -14,9 +14,16 @@
 (defn all-cards? [coll]
   (every? card? coll))
 
-(defn complete-game 
+(defn complete-game
   [known-hands community-cards]
-  ())
+  (letfn [()]
+    (let [])))
+
+; (complete-game [[] []] [[:clover :ace] [:heart 3]])
+
+; remove known cards
+; shuffle cards
+; take the required amount
 
 (defn simulate
   [num-simulations num-players known-hands community-cards]
@@ -33,9 +40,16 @@
           known-hands (get params 2)
           community-cards (get params 3)]
       (assert (and (number? num-simulations) (number? num-players)))
-      (assert (<= (count known-hands) num-players))
+      (assert (<= (count known-hands) num-players)) 
       (assert (<= (count community-cards) 5))
-      (assert (all-cards? known-hands))
+      
+      (assert (every? #(<= 2 (count %)) known-hands))
+      (assert (every? all-cards? known-hands))
+      
+      (assert (apply distinct? (concat
+                                (apply concat known-hands)
+                                community-cards)))
+      
       (assert (all-cards? community-cards))
       params)))
 
