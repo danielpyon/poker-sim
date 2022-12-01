@@ -3,6 +3,7 @@
   (:require [clojure.string :as string])
   (:require [clojure.set :as set]))
 
+; card functions
 (def deck
   #{[:clover :ace] [:clover :2] [:clover :3] [:clover :4] [:clover :5] [:clover :6] [:clover :7] [:clover :8] [:clover :9] [:clover :10] [:clover :jack] [:clover :queen] [:clover :king]
    [:spade :ace] [:spade :2] [:spade :3] [:spade :4] [:spade :5] [:spade :6] [:spade :7] [:spade :8] [:spade :9] [:spade :10] [:spade :jack] [:spade :queen] [:spade :king]
@@ -18,8 +19,8 @@
 (defn remove-cards [deck cards]
   (set/difference deck cards))
 
-;;
 
+; utility functions
 (defn flatten-once [coll]
   (apply concat coll))
 
@@ -66,33 +67,27 @@
 
 (defn simulate
   [num-simulations num-players known-hands community-cards]
-  [])
+  (complete-game num-players known-hands community-cards))
 
 (defn check-args
-  [args]
-  (let [params
-        ((comp vec concat) [(int (first args)) (int (second args))]
-                           (load-string (str "[" (string/join (drop 2 args)) "]")))]
-    (assert (= 4 (count params)))
-    (let [num-simulations (first params)
-          num-players (second params)
-          known-hands (get params 2)
-          community-cards (get params 3)]
-      (assert (and (number? num-simulations) (number? num-players)))
-      (assert (<= (count known-hands) num-players)) 
-      (assert (<= (count community-cards) 5))
-      
-      (assert (every? #(<= 2 (count %)) known-hands))
-      (assert (every? all-cards? known-hands))
-      
-      (assert (apply distinct? (concat
-                                (flatten-once known-hands)
-                                community-cards)))
-      
-      (assert (all-cards? community-cards))
-      params)))
+  [num-simulations num-players known-hands community-cards]
+     (assert (and (number? num-simulations) (number? num-players)))
+     (assert (<= (count known-hands) num-players)) 
+     (assert (<= (count community-cards) 5))
+     
+     (assert (every? #(<= (count %) 2) known-hands))
+     (assert (every? all-cards? known-hands))
+     
+     (assert (apply distinct? (concat (flatten-once known-hands)
+                                      community-cards)))
+     
+     (assert (all-cards? community-cards))
+     [num-simulations num-players known-hands community-cards])
 
-(defn -main 
-  [& args] 
-  (try (println (apply simulate (check-args args)))
-       (catch Exception e (println e) "Usage: ./core.clj <n> <known hands> <community cards>")))
+(defn -main
+  [& args]
+  (let [n 100
+        p 5
+        kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace]]]
+        cc [[:diamond :2] [:spade :queen] [:heart :8]]]
+    (apply simulate (check-args n p kh cc))))
