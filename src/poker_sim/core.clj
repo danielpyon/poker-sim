@@ -75,6 +75,13 @@
           completed (take-cards (partition-cards cards 2) required)] ; take the required number of pairs of cards
       [completed (drop-cards cards (* required 2))])) ; we took required*2 cards
 
+  (defn complete-one
+    [cards hands]
+    (let [required (count (filter #(= (count %) 1) hands))
+          completed (zip (take-cards (flatten-once (partition-cards cards 1)) required)
+                         hands)] ; take the required number of pairs of cards
+      [completed (drop-cards cards required )]))
+  
   (let [not-required-2 (vec (filter #(>= (count %) 1) known-hands))
         num-required-2-known (- num-players (count not-required-2)) ; number of player hands that that need 2 cards
 
