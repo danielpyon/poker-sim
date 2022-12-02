@@ -94,10 +94,9 @@
   (defn cards-in-use [known-hands community-cards]
     (reduce combine-hands community-cards known-hands))
   
-  (let [cards-initial (shuffle-cards
-                       (remove-cards deck
-                                     (cards-in-use known-hands
-                                                   community-cards)))
+  (let [cards-initial (->> (cards-in-use known-hands community-cards)
+                           (remove-cards deck)
+                           shuffle-cards)
         
         [community cards-after-community] (complete-community cards-initial community-cards)
         [two cards-after-two] (complete-two cards-after-community known-hands num-players)
