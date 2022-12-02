@@ -53,6 +53,9 @@
 (defn zip [a b]
   (vec (map vector a b)))
 
+(defrecord GameState [community hands])
+(defrecord PlayerStats [win lose tie total])
+
 (defn complete-game
   "Completes the game by filling in remaining cards with random ones. Returns a map with key
    :community for community cards, and :hands for the player hands."
@@ -105,12 +108,33 @@
         
         hands (combine-hands zero one two)]
     
-    {:community community
-     :hands hands}))
+    (map->GameState {:community community
+                     :hands hands})))
+
+(defn eval-game
+  "Evaluate the given GameState and return a map of player hands to PlayerStats."
+  [stats game-state] ; states is a map from player hands to PlayerStats
+  )
 
 (defn simulate
-  [num-simulations num-players known-hands community-cards]
-  (complete-game num-players known-hands community-cards))
+  ([num-simulations num-players known-hands community-cards stats]
+   (if (>= num-simulations 1)
+     (recur (dec num-simulations)
+            num-players
+            known-hands
+            community-cards
+            (eval-game stats (complete-game num-players
+                                            known-hands
+                                            community-cards)))
+     
+     stats)) ; just return stats if we are done simulating
+  
+  ([num-simulations num-players known-hands community-cards]
+   (simulate num-simulations
+             num-players 
+             known-hands
+             community-cards 
+             {})))
 
 (defn check-args
   [num-simulations num-players known-hands community-cards]
