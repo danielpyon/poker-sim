@@ -32,9 +32,9 @@
    the returned vector. Rest of the cards are stored in the second element."
   [(take-cards cards n) (drop-cards cards n)])
 
-(defn combine-hands [a b]
+(defn combine-hands [& hands]
   "Given two hands (each a vector of cards), returns the combined hand."
-  (vec (concat a b)))
+  (vec (apply concat hands)))
 
 (defn partition-cards [cards n]
   "Partition the cards into groups of n."
@@ -48,13 +48,14 @@
 
 ; utility functions
 (defn flatten-once [coll]
-  (apply concat coll))
+  (vec (apply concat coll)))
 
 (defn zip [a b]
   (vec (map vector a b)))
 
 (defn complete-game
-  "Completes the game by filling in remaining cards with random ones."
+  "Completes the game by filling in remaining cards with random ones. Returns a map with key
+   :community for community cards, and :hands for the player hands."
   [num-players known-hands community-cards]
   
   (defn complete-community
@@ -65,7 +66,7 @@
     (let [required (- 5 (count community)) ; the number of cards required
           [rest deck] (split-cards cards required)] ; the rest of the community cards & the remaining deck 
       [(combine-hands community rest) deck])) ; return complete community cards and the rest of the deck
-
+  
   (defn complete-two
     "Completes the player hands that need two cards. Returns a vector whose first element are the
      complete player hands (for players that needed two cards) and whose second element are the
@@ -74,46 +75,39 @@
     (let [required (- players (count (filter #(>= (count %) 1) hands)))
           completed (take-cards (partition-cards cards 2) required)] ; take the required number of pairs of cards
       [completed (drop-cards cards (* required 2))])) ; we took required*2 cards
-
+  
   (defn complete-one
     [cards hands]
-    (let [required (count (filter #(= (count %) 1) hands))
-          completed (zip (take-cards (flatten-once (partition-cards cards 1)) required)
-                         hands)] ; take the required number of pairs of cards
-      [completed (drop-cards cards required )]))
+    (let [required (filter #(= (count %) 1) hands)
+          num-required (count required)
+          completed (-> cards
+                        (partition-cards 1)
+                        flatten-once
+                        (take-cards num-required)
+                        (zip (flatten-once required)))]
+      [completed (drop-cards cards num-required)]))
   
-  (let [not-required-2 (vec (filter #(>= (count %) 1) known-hands))
-        num-required-2-known (- num-players (count not-required-2)) ; number of player hands that that need 2 cards
-
-        required-1 (vec (filter #(= 1 (count %)) known-hands))
-        required-0 (vec (filter #(= 2 (count %)) known-hands))
-
-        num-required-community (- 5 (count community-cards))
-
-        cards-to-remove (set (concat (flatten-once known-hands)
-                                     community-cards))
-        deck-shuffled (shuffle-cards (remove-cards deck cards-to-remove))
-        deck-after-community (drop-cards deck-shuffled num-required-community)
-        deck-after-2-known (drop-cards deck-after-community num-required-2-known)]
-    (let [community (vec (concat
-                          community-cards
-                          (take num-required-community deck-shuffled)))
-
-            ; the rest of the required hands for players with 0 cards
-          rest-required-2 (vec (map vec (take num-required-2-known (partition 2 deck-after-community))))
-
-            ; the random cards to be zipped
-          rest-random-cards-1 (vec (flatten-once (partition 1 deck-after-2-known)))
-            ; the rest of the required hands for players with 1 cards
-          rest-required-1 (zip (flatten-once required-1) rest-random-cards-1)
-
-          hands (vec (concat
-                      rest-required-1
-                      rest-required-2
-                      required-0))]
-
-      {:community community
-       :hands hands})))
+  (defn complete-zero
+    [hands]
+    (vec (filter #(= (count %) 2) hands)))
+  
+  (defn cards-in-use [known-hands community-cards]
+    (reduce combine-hands community-cards known-hands))
+  
+  (let [cards-initial (shuffle-cards
+                       (remove-cards deck
+                                     (cards-in-use known-hands
+                                                   community-cards)))
+        
+        [community cards-after-community] (complete-community cards-initial community-cards)
+        [two cards-after-two] (complete-two cards-after-community known-hands num-players)
+        [one _] (complete-one cards-after-two known-hands)
+        zero (complete-zero known-hands)
+        
+        hands (combine-hands zero one two)]
+    
+    {:community community
+     :hands hands}))
 
 (defn simulate
   [num-simulations num-players known-hands community-cards]
@@ -140,5 +134,4 @@
         p 5
         kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace]]]
         cc [[:diamond :2] [:spade :queen] [:heart :8]]]
-    (println (complete-community (shuffle deck) cc))
     (apply simulate (check-args n p kh cc))))
