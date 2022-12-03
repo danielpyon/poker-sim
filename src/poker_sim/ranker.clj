@@ -18,6 +18,9 @@
     (vec (map (comp card-num-ace-high second) hand))
     (vec (map (comp card-num-ace-low second) hand))))
 
+; each function defines an ordering on the hands given the type
+; then we can just multiply by total-combinations
+
 (defn- straight?
   "Returns whether the cards are a straight."
   [hand]
@@ -47,20 +50,62 @@
   (and (core/same-suit? hand)
        (straight? hand)))
 
-; each function defines an ordering on the hands given the type
-; then we can just multiply by total-combinations
 (defn- straight-flush
   "Returns the ranking number for the hand given that it is a straight flush."
   [hand]
   (straight hand))
 
+(defn- four-of-a-kind?
+  [hand]
+  ; the frequency map of numbers in the hand should contain a 4
+  (core/in? (vals (frequencies (map second hand))) 4))
+
+(defn- four-of-a-kind
+  [hand]
+  1)
+
+(defn- full-house?
+  [hand]
+  false)
+(defn- full-house
+  [hand]
+  1)
+
+(defn- flush?
+  [hand]
+  false)
+(defn- flush
+  [hand]
+  1)
+
+(defn- three-of-a-kind?
+  [hand]
+  false)
+(defn- three-of-a-kind
+  [hand]
+  1)
+
+(defn- two-pair?
+  [hand]
+  false)
+(defn- two-pair
+  [hand]
+  1)
+
 (defn- one-pair?
   [hand]
-  ())
+  false)
+(defn- one-pair
+  [hand]
+  1)
+
+(defn- high-card
+  [hand]
+  1)
 
 (defn- rank [hand]
   (cond (straight-flush? hand) (straight-flush hand)
-        (four-of-a-kind? hand) (four-of-a-kind)
+        (four-of-a-kind? hand) (four-of-a-kind hand)
         (full-house? hand) (full-house hand)
         (flush? hand) (flush hand)
         (straight? hand) (straight hand)

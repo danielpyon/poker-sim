@@ -57,6 +57,9 @@
 (defn zip [a b]
   (vec (map vector a b)))
 
+(defn in? [coll elm]
+  (not (nil? (some #(= % elm) coll))))
+
 (defrecord GameState [community hands])
 (defrecord PlayerStats [win lose tie total])
 
