@@ -34,17 +34,25 @@
     (or (increasing-by-one? ace-high)
         (increasing-by-one? ace-low))))
 
+(defn- straight
+  [hand]
+  ; the base ranking is a multiple of total-combinations
+  (let [base-ranking (* total-combinations 8)
+        ace-high (sort (hand-to-nums hand true))
+        ace-low (sort (hand-to-nums hand false))]
+    (+ base-ranking (max (last ace-high) (last ace-low)))))
+
 (defn- straight-flush?
   [hand]
   (and (core/same-suit? hand)
-       ))
+       (straight? hand)))
 
 ; each function defines an ordering on the hands given the type
 ; then we can just multiply by total-combinations
 (defn- straight-flush
   "Returns the ranking number for the hand given that it is a straight flush."
   [hand]
-  false)
+  (straight hand))
 
 (defn- one-pair?
   [hand]
