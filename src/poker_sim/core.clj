@@ -46,6 +46,10 @@
 (defn all-cards? [coll]
   (every? card? coll))
 
+(defn same-suit? [hand]
+  (and (all-cards? hand)
+       (apply = (map first hand))))
+
 ; utility functions
 (defn flatten-once [coll]
   (vec (apply concat coll)))
