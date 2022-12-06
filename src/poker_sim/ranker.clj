@@ -1,7 +1,9 @@
 (ns poker-sim.ranker
   (:require [clojure.math.combinatorics :as combo]
             [poker-sim.core :as core]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [taoensso.nippy :as nippy]
+            [clojure.java.io :as io]))
 
 (def total-combinations 2598960)
 
@@ -176,12 +178,16 @@
 (defn- save-ranker!
   "Saves the ranker to a file. Warning: this will take a while..."
   []
-  (spit "ranker.edn" (with-out-str (pr (generate-rankings)))))
+  (with-open [w (clojure.java.io/output-stream "ranker.bin")]
+    (.write w (nippy/freeze (generate-rankings)))))
 
 (defn load-ranker
   "Loads the ranker from disk."
   []
-  (read-string (slurp "ranker.edn")))
+  (nippy/thaw (-> "ranker.bin"
+                  io/file
+                  .toPath
+                  java.nio.file.Files/readAllBytes)))
 
 ;; parallelize?
 
