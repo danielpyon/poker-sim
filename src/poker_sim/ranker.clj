@@ -33,6 +33,13 @@
 ; each function defines an ordering on the hands given the type
 ; then we can just multiply by total-combinations
 
+(defn- high-card
+  [hand]
+  (let [ace-high (-> hand
+                     (hand-to-nums true)
+                     sort)] ; get card ranks in increasing order
+    (rank-increasing ace-high)))
+
 (defn- straight?
   "Returns whether the cards are a straight."
   [hand]
@@ -48,6 +55,13 @@
         ace-low (sort (hand-to-nums hand false))]
     (or (increasing-by-one? ace-high)
         (increasing-by-one? ace-low))))
+
+(defn- flush?
+  [hand]
+  (core/same-suit? hand))
+(defn- flush
+  [hand]
+  (high-card hand))
 
 (defn- straight
   [hand]
@@ -93,13 +107,6 @@
         three (card-num-ace-high (inv-freqs 3))
         two (card-num-ace-high (inv-freqs 2))]
     (+ (* three 13) two)))
-
-(defn- flush?
-  [hand]
-  (core/same-suit? hand))
-(defn- flush
-  [hand]
-  (high-card hand))
 
 (defn- three-of-a-kind?
   [hand]
@@ -152,13 +159,6 @@
         remaining (sort (hand-to-nums remaining-cards true))]
     (+ (* two (* 13 13 13)) (rank-increasing remaining))))
 
-(defn- high-card
-  [hand]
-  (let [ace-high (-> hand
-                     (hand-to-nums true)
-                     sort)] ; get card ranks in increasing order
-    (rank-increasing ace-high)))
-
 (defn- rank [hand]
   (cond (straight-flush? hand) (straight-flush hand)
         (four-of-a-kind? hand) (four-of-a-kind hand)
@@ -171,7 +171,7 @@
         :else (high-card hand)))
 
 (defn- generate-rankings []
-  (reduce (fn [acc curr] (assoc acc (vec curr) (rank curr)))
+  (reduce (fn [acc curr] (assoc acc (set curr) (rank curr)))
           {}
           (combo/combinations core/deck 5)))
 

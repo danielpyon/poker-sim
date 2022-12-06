@@ -1,7 +1,9 @@
 (ns poker-sim.core
   (:gen-class)
-  (:require [clojure.string :as string])
-  (:require [clojure.set :as set]))
+  (:require [clojure.string :as string]
+            [clojure.set :as set]
+            [poker-sim.ranker :as ranker]
+            [clojure.math.combinatorics :as combo]))
 
 ; card functions
 (def deck
@@ -118,10 +120,36 @@
     (map->GameState {:community community
                      :hands hands})))
 
+(def game-ranker (ranker/load-ranker))
+
 (defn eval-game
   "Evaluate the given GameState and return a map of player hands to PlayerStats."
   [stats game-state] ; states is a map from player hands to PlayerStats
-  )
+  
+  (defn indexes-of [e coll]
+    (keep-indexed #(if (= e %2) %1) coll))
+  
+  (defn max-keys
+    "Returns a list of x's such that (k x) is maximized"
+    [k & args]
+    (let [max-val (apply max (map k args))]
+      (indexes-of max-val args)))
+  
+  (defn best-hand
+    "Returns the best hand given community cards and a hand"
+    [community hand]
+    (let [all-cards (into community hand)
+          possibilities (combo/combinations all-cards 5)]
+      (apply (partial max-key #(game-ranker (set %)))
+             possibilities)))
+  
+  (let [community (:community game-state)
+        hands (:hands game-state)
+        best-hands (map #(best-hand community %) hands)
+        winners (apply max-keys (comp game-ranker set)
+                       best-hands)]
+    (println (map (comp game-ranker set) best-hands))
+    winners))
 
 (defn simulate
   ([num-simulations num-players known-hands community-cards stats]
@@ -160,7 +188,7 @@
 
 (defn -main
   [& args]
-  (let [n 100
+  (let [n 1
         p 5
         kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace]]]
         cc [[:diamond :2] [:spade :queen] [:heart :8]]]
