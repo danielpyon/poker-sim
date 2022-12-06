@@ -1,6 +1,7 @@
 (ns poker-sim.ranker
   (:require [clojure.math.combinatorics :as combo]
-            [poker-sim.core :as core]))
+            [poker-sim.core :as core]
+            [clojure.set :as set]))
 
 (def total-combinations 2598960)
 
@@ -47,8 +48,8 @@
 
 (defn- straight-flush?
   [hand]
-  (and (core/same-suit? hand)
-       (straight? hand)))
+  (and (straight? hand)
+       (flush? hand)))
 
 (defn- straight-flush
   "Returns the ranking number for the hand given that it is a straight flush."
@@ -57,51 +58,104 @@
 
 (defn- four-of-a-kind?
   [hand]
-  ; the frequency map of numbers in the hand should contain a 4
-  (core/in? (vals (frequencies (map second hand))) 4))
+  (let [freqs (frequencies (map second hand))]
+    (= (sort (vals freqs)) '(1 4))))
 
 (defn- four-of-a-kind
   [hand]
-  1)
+  (let [freqs (frequencies (map second hand))
+        inv-freqs (set/map-invert freqs)
+        four (card-num-ace-high (inv-freqs 4)) ; the card that was repeated 4 times
+        one (card-num-ace-high (inv-freqs 1))]
+    (+ (* four 13) one)))
 
 (defn- full-house?
   [hand]
-  false)
+  (let [freqs (frequencies (map second hand))
+        vals (vals freqs)]
+    (= (sort vals) '(2 3))))
+
 (defn- full-house
   [hand]
-  1)
+  (let [freqs (frequencies (map second hand))
+        inv-freqs (set/map-invert freqs)
+        three (card-num-ace-high (inv-freqs 3))
+        two (card-num-ace-high (inv-freqs 2))]
+    (+ (* three 13) two)))
 
 (defn- flush?
   [hand]
-  false)
+  (core/same-suit? hand))
 (defn- flush
   [hand]
-  1)
+  (high-card hand))
 
 (defn- three-of-a-kind?
   [hand]
-  false)
+  ; we don't need to check the other 2 cards because we alr know its not a full house
+  (let [freqs (frequencies (map second hand))]
+    (= (sort (vals freqs)) '(1 1 3))))
 (defn- three-of-a-kind
   [hand]
-  1)
+  (let [freqs (frequencies (map second hand))
+        inv-freqs (set/map-invert freqs)
+        triplet (inv-freqs 3)
+        three (card-num-ace-high triplet)
+        remaining-cards (remove #(= (second %) triplet) hand)
+        remaining (sort (hand-to-nums remaining-cards true))]
+    (+ (* three (* 13 13)) (rank-increasing remaining))))
 
 (defn- two-pair?
   [hand]
-  false)
+  (let [freqs (frequencies (map second hand))]
+    (= (sort (vals freqs)) '(1 2 2))))
 (defn- two-pair
   [hand]
-  1)
+  (defn- rank-inc ; kind of hacky: add an offset to the index (power of 13)
+    [cards offset]
+    (defn expt [x n]
+      (reduce * (repeat n x)))
+    (defn card-pow [idx itm]
+      (* itm (expt 13 (+ idx offset))))
+    (reduce + (map-indexed card-pow cards)))
+  
+  (let [freqs (frequencies (map second hand))
+        inv-freqs (set/map-invert freqs)
+        single (inv-freqs 1)
+        single-rank (card-num-ace-high single)
+        remaining-cards (remove #(= (second %) single) hand)
+        remaining (sort (hand-to-nums remaining-cards true))]
+    (+ (rank-inc remaining 1) single-rank)))
 
 (defn- one-pair?
   [hand]
-  false)
+  (let [freqs (frequencies (map second hand))]
+    (= (sort (vals freqs)) '(1 1 1 2))))
 (defn- one-pair
   [hand]
-  1)
+  (let [freqs (frequencies (map second hand))
+        inv-freqs (set/map-invert freqs)
+        pair (inv-freqs 2)
+        two (card-num-ace-high pair)
+        remaining-cards (remove #(= (second %) pair) hand)
+        remaining (sort (hand-to-nums remaining-cards true))]
+    (+ (* two (* 13 13 13)) (rank-increasing remaining))))
+
+(defn- rank-increasing
+  "Given a vector of card nums in increasing order, returns the rank"
+  [cards]
+  (defn expt [x n]
+    (reduce * (repeat n x)))
+  (defn card-pow [idx itm]
+    (* itm (expt 13 idx)))
+  (reduce + (map-indexed card-pow cards)))
 
 (defn- high-card
   [hand]
-  1)
+  (let [ace-high (-> hand
+                     (hand-to-nums true)
+                     sort)] ; get card ranks in increasing order
+    (reduce + (rank-increasing ace-high))))
 
 (defn- rank [hand]
   (cond (straight-flush? hand) (straight-flush hand)
