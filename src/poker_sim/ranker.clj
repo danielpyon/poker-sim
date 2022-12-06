@@ -155,7 +155,7 @@
   (let [ace-high (-> hand
                      (hand-to-nums true)
                      sort)] ; get card ranks in increasing order
-    (reduce + (rank-increasing ace-high))))
+    (rank-increasing ace-high)))
 
 (defn- rank [hand]
   (cond (straight-flush? hand) (straight-flush hand)
@@ -168,9 +168,12 @@
         (one-pair? hand) (one-pair hand)
         :else (high-card hand)))
 
-(defn- gen-rankings [])
+(defn- gen-rankings []
+  (reduce (fn [acc curr] (assoc acc (vec curr) (rank curr)))
+          {}
+          (combo/combinations core/deck 5)))
 
-(def rankings (gen-rankings))
+(def ranker (gen-rankings))
 
 ;; load hand ranking into memory
 ;; parallelize?
@@ -186,4 +189,5 @@
 ;; high card
 
 ; (println (count (combo/combinations core/deck 5)))
+
 
