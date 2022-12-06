@@ -19,6 +19,15 @@
     (vec (map (comp card-num-ace-high second) hand))
     (vec (map (comp card-num-ace-low second) hand))))
 
+(defn- rank-increasing
+  "Given a vector of card nums in increasing order, returns the rank"
+  [cards]
+  (defn expt [x n]
+    (reduce * (repeat n x)))
+  (defn card-pow [idx itm]
+    (* itm (expt 13 idx)))
+  (reduce + (map-indexed card-pow cards)))
+
 ; each function defines an ordering on the hands given the type
 ; then we can just multiply by total-combinations
 
@@ -141,15 +150,6 @@
         remaining (sort (hand-to-nums remaining-cards true))]
     (+ (* two (* 13 13 13)) (rank-increasing remaining))))
 
-(defn- rank-increasing
-  "Given a vector of card nums in increasing order, returns the rank"
-  [cards]
-  (defn expt [x n]
-    (reduce * (repeat n x)))
-  (defn card-pow [idx itm]
-    (* itm (expt 13 idx)))
-  (reduce + (map-indexed card-pow cards)))
-
 (defn- high-card
   [hand]
   (let [ace-high (-> hand
@@ -168,14 +168,21 @@
         (one-pair? hand) (one-pair hand)
         :else (high-card hand)))
 
-(defn- gen-rankings []
+(defn- generate-rankings []
   (reduce (fn [acc curr] (assoc acc (vec curr) (rank curr)))
           {}
           (combo/combinations core/deck 5)))
 
-(def ranker (gen-rankings))
+(defn- save-ranker!
+  "Saves the ranker to a file. Warning: this will take a while..."
+  []
+  (spit "ranker.edn" (with-out-str (pr (generate-rankings)))))
 
-;; load hand ranking into memory
+(defn load-ranker
+  "Loads the ranker from disk."
+  []
+  (read-string (slurp "ranker.edn")))
+
 ;; parallelize?
 
 ;; straight flush
@@ -187,7 +194,5 @@
 ;; two pair
 ;; one pair
 ;; high card
-
-; (println (count (combo/combinations core/deck 5)))
 
 
