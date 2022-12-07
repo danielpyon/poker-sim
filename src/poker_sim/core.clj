@@ -65,6 +65,18 @@
 (defrecord GameState [community hands])
 (defrecord PlayerStats [win lose tie total])
 
+(defn player-win [stats]
+  (let [curr (:win stats)]
+    (assoc stats :win (inc curr))))
+
+(defn player-lose [stats]
+  (let [curr (:lose stats)]
+    (assoc stats :lose (inc curr))))
+
+(defn player-tie [stats]
+  (let [curr (:tie stats)]
+    (assoc stats :tie (inc curr))))
+
 (defn complete-game
   "Completes the game by filling in remaining cards with random ones. Returns a map with key
    :community for community cards, and :hands for the player hands."
@@ -122,18 +134,36 @@
 
 (def game-ranker (ranker/load-ranker))
 
+(defn update-stats
+  "Returns new stats given list of hands and indices of winners"
+  [stats hands winners] ; note: hands must be the hands BEFORE complete-game
+  (let [winning-hands (set (map #(get hands %) winners))]
+    (defn update-player [acc curr]
+      (if (contains? winning-hands curr)
+        (assoc acc curr
+               ((if (= 1 (count winners))
+                 player-win
+                 player-lose)
+                (acc curr)))
+        (assoc acc curr (player-lose (acc curr)))))
+    
+    (reduce update-player
+            stats
+            hands)))
+
 (defn eval-game
   "Evaluate the given GameState and return a map of player hands to PlayerStats."
-  [stats game-state] ; states is a map from player hands to PlayerStats
+  [stats known-hands game-state] ; stats is a map from player hands to PlayerStats
   
   (defn indexes-of [e coll]
     (keep-indexed #(if (= e %2) %1) coll))
   
   (defn max-keys
     "Returns a list of x's such that (k x) is maximized"
-    [k & args]
-    (let [max-val (apply max (map k args))]
-      (indexes-of max-val args)))
+    [k items]
+    (let [scores (map k items) ; apply k to each item
+          max-val (apply max scores)]
+      (indexes-of max-val scores)))
   
   (defn best-hand
     "Returns the best hand given community cards and a hand"
@@ -146,10 +176,9 @@
   (let [community (:community game-state)
         hands (:hands game-state)
         best-hands (map #(best-hand community %) hands)
-        winners (apply max-keys (comp game-ranker set)
-                       best-hands)]
-    (println (map (comp game-ranker set) best-hands))
-    winners))
+        winners (max-keys (comp game-ranker set) ; the indices of winning hands
+                          best-hands)]
+    (update-stats stats known-hands winners)))
 
 (defn simulate
   ([num-simulations num-players known-hands community-cards stats]
@@ -158,18 +187,26 @@
             num-players
             known-hands
             community-cards
-            (eval-game stats (complete-game num-players
-                                            known-hands
-                                            community-cards)))
+            (eval-game stats known-hands
+                       (complete-game num-players
+                                      known-hands
+                                      community-cards)))
      
      stats)) ; just return stats if we are done simulating
   
   ([num-simulations num-players known-hands community-cards]
-   (simulate num-simulations
-             num-players 
-             known-hands
-             community-cards 
-             {})))
+   (let [default-stat (map->PlayerStats {:win 0
+                                         :lose 0
+                                         :tie 0
+                                         :total num-simulations})
+         initial-stats (into {} (zip known-hands
+                                     (repeat (count known-hands)
+                                             default-stat)))]
+     (simulate num-simulations
+               num-players
+               known-hands
+               community-cards
+               initial-stats))))
 
 (defn check-args
   [num-simulations num-players known-hands community-cards]
@@ -188,8 +225,8 @@
 
 (defn -main
   [& args]
-  (let [n 1
-        p 5
-        kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace]]]
+  (let [n 10000
+        p 3
+        kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace] [:diamond :ace]]]
         cc [[:diamond :2] [:spade :queen] [:heart :8]]]
     (apply simulate (check-args n p kh cc))))
