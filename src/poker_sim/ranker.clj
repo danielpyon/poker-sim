@@ -34,11 +34,12 @@
 ; then we can just multiply by total-combinations
 
 (defn- high-card
-  [hand]
-  (let [ace-high (-> hand
-                     (hand-to-nums true)
-                     sort)] ; get card ranks in increasing order
-    (rank-increasing ace-high)))
+  ([hand] (high-card hand 0))
+  ([hand base]
+   (let [ace-high (-> hand 
+                      (hand-to-nums true)
+                      sort)] ; get card ranks in increasing order
+     (+ base (rank-increasing ace-high)))))
 
 (defn- straight?
   "Returns whether the cards are a straight."
@@ -61,15 +62,15 @@
   (core/same-suit? hand))
 (defn- flush
   [hand]
-  (high-card hand))
+  (high-card hand (* total-combinations 5)))
 
 (defn- straight
-  [hand]
-  ; the base ranking is a multiple of total-combinations
-  (let [base-ranking (* total-combinations 8)
-        ace-high (sort (hand-to-nums hand true))
-        ace-low (sort (hand-to-nums hand false))]
-    (+ base-ranking (max (last ace-high) (last ace-low)))))
+  ([hand] (straight hand (* total-combinations 4)))
+  ([hand base]
+   ; the base ranking is a multiple of total-combinations
+   (let [ace-high (sort (hand-to-nums hand true))
+         ace-low (sort (hand-to-nums hand false))] 
+     (+ base (max (last ace-high) (last ace-low))))))
 
 (defn- straight-flush?
   [hand]
@@ -79,7 +80,7 @@
 (defn- straight-flush
   "Returns the ranking number for the hand given that it is a straight flush."
   [hand]
-  (straight hand))
+  (straight hand (* total-combinations 8)))
 
 (defn- four-of-a-kind?
   [hand]
@@ -88,11 +89,12 @@
 
 (defn- four-of-a-kind
   [hand]
-  (let [freqs (frequencies (map second hand))
+  (let [base-ranking (* total-combinations 7)
+        freqs (frequencies (map second hand))
         inv-freqs (set/map-invert freqs)
         four (card-num-ace-high (inv-freqs 4)) ; the card that was repeated 4 times
         one (card-num-ace-high (inv-freqs 1))]
-    (+ (* four 13) one)))
+    (+ base-ranking (* four 13) one)))
 
 (defn- full-house?
   [hand]
@@ -102,11 +104,12 @@
 
 (defn- full-house
   [hand]
-  (let [freqs (frequencies (map second hand))
+  (let [base-ranking (* total-combinations 6)
+        freqs (frequencies (map second hand))
         inv-freqs (set/map-invert freqs)
         three (card-num-ace-high (inv-freqs 3))
         two (card-num-ace-high (inv-freqs 2))]
-    (+ (* three 13) two)))
+    (+ base-ranking (* three 13) two)))
 
 (defn- three-of-a-kind?
   [hand]
@@ -115,13 +118,14 @@
     (= (sort (vals freqs)) '(1 1 3))))
 (defn- three-of-a-kind
   [hand]
-  (let [freqs (frequencies (map second hand))
+  (let [base-ranking (* total-combinations 3)
+        freqs (frequencies (map second hand))
         inv-freqs (set/map-invert freqs)
         triplet (inv-freqs 3)
         three (card-num-ace-high triplet)
         remaining-cards (remove #(= (second %) triplet) hand)
         remaining (sort (hand-to-nums remaining-cards true))]
-    (+ (* three (* 13 13)) (rank-increasing remaining))))
+    (+ base-ranking (* three (* 13 13)) (rank-increasing remaining))))
 
 (defn- two-pair?
   [hand]
@@ -137,13 +141,14 @@
       (* itm (expt 13 (+ idx offset))))
     (reduce + (map-indexed card-pow cards)))
   
-  (let [freqs (frequencies (map second hand))
+  (let [base-ranking (* total-combinations 2)
+        freqs (frequencies (map second hand))
         inv-freqs (set/map-invert freqs)
         single (inv-freqs 1)
         single-rank (card-num-ace-high single)
         remaining-cards (remove #(= (second %) single) hand)
         remaining (sort (hand-to-nums remaining-cards true))]
-    (+ (rank-inc remaining 1) single-rank)))
+    (+ base-ranking (rank-inc remaining 1) single-rank)))
 
 (defn- one-pair?
   [hand]
@@ -151,13 +156,14 @@
     (= (sort (vals freqs)) '(1 1 1 2))))
 (defn- one-pair
   [hand]
-  (let [freqs (frequencies (map second hand))
+  (let [base-ranking total-combinations
+        freqs (frequencies (map second hand))
         inv-freqs (set/map-invert freqs)
         pair (inv-freqs 2)
         two (card-num-ace-high pair)
         remaining-cards (remove #(= (second %) pair) hand)
         remaining (sort (hand-to-nums remaining-cards true))]
-    (+ (* two (* 13 13 13)) (rank-increasing remaining))))
+    (+ base-ranking (* two (* 13 13 13)) (rank-increasing remaining))))
 
 (defn- rank [hand]
   (cond (straight-flush? hand) (straight-flush hand)
