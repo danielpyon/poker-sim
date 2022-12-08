@@ -227,6 +227,6 @@
   [& args]
   (let [n 10000
         p 3
-        kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace] [:diamond :ace]]]
+        kh [[[:heart :3] [:diamond :king]] [[:spade :7] [:clover :jack]] [[:heart :ace] [:spade :5]]]
         cc [[:diamond :2] [:spade :queen] [:heart :8]]]
     (apply simulate (check-args n p kh cc))))
